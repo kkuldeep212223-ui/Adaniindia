@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Adani Strategic Wealth</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        :root {
+            --primary: #000000;
+            --secondary: #1e272e;
+            --accent: #ffd700;
+            --bg: #f3f4f6;
+            --text: #2d3436;
+            --white: #ffffff;
+            --success: #00b894;
+            --danger: #d63031;
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+        /* Helpers */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .text-center { text-align: center; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .text-gold { color: var(--accent); }
+        .text-bold { font-weight: 700; }
+        
+        /* Container */
+        #app { max-width: 480px; margin: 0 auto; background: var(--white); min-height: 100vh; padding-bottom: 80px; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.1); }
+
+        /* Header */
+        header { background: linear-gradient(135deg, #000000, #2c3e50); color: var(--white); padding: 25px 20px; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100; }
+        .welcome-text { font-size: 0.85rem; opacity: 0.8; letter-spacing: 1px; text-transform: uppercase; }
+        .username-text { font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-top: 5px; text-transform: capitalize; letter-spacing: 0.5px; }
+
+        /* Buttons */
+        .btn { padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1rem; transition: 0.2s; width: 100%; margin-top: 10px; letter-spacing: 0.5px; }
+        .btn-primary { background: linear-gradient(to right, #000, #333); color: var(--accent); border: 1px solid var(--accent); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: #dfe6e9; color: #2d3436; }
+        .btn:active { transform: scale(0.97); }
+
+        /* Inputs */
+        .form-group { margin-bottom: 18px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #444; font-weight: 600; }
+        .form-control { width: 100%; padding: 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; outline: none; background: #f8f9fa; transition: 0.3s; }
+        .form-control:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+
+        /* Auth Screen */
+        .auth-container { padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; min-height: 95vh; background: white; }
+        .auth-logo { font-size: 4rem; color: var(--primary); margin-bottom: 10px; text-align: center; cursor: pointer; user-select: none; transition: 0.1s; }
+        .auth-logo:active { transform: scale(0.9); }
+        .auth-logo-text { text-align: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 30px; letter-spacing: 2px; }
+        .auth-toggle { margin-top: 20px; font-size: 0.9rem; color: #555; text-align: center; }
+        .auth-toggle span { color: var(--primary); cursor: pointer; font-weight: bold; text-decoration: underline; }
+
+        /* Dashboard & Balance */
+        .balance-card {
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1640340434855-6084b1f4901c?auto=format&fit=crop&q=80&w=500'); 
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 30px 20px;
+            margin: 20px 15px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        .balance-label { font-size: 0.8rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 2px; }
+        .balance-val { font-size: 2.8rem; font-weight: 800; margin: 10px 0; color: var(--accent); }
+        .sub-balance { font-size: 0.95rem; background: rgba(255, 215, 0, 0.15); padding: 8px 15px; border-radius: 20px; display: inline-block; border: 1px solid rgba(255,215,0,0.3); color: #fff; }
+
+        /* Quick Actions */
+        .quick-actions { display: flex; justify-content: space-between; flex-wrap: wrap; padding: 10px 15px; margin-bottom: 10px; }
+        .qa-item { display: flex; flex-direction: column; align-items: center; width: 22%; cursor: pointer; transition: 0.2s; margin-bottom: 15px; }
+        .qa-icon { width: 55px; height: 55px; background: white; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.3rem; margin-bottom: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); border: 1px solid #f0f0f0; }
+        .qa-item:hover .qa-icon { transform: translateY(-3px); border-color: var(--accent); background: var(--primary); color: var(--accent); }
+        .qa-text { font-size: 0.75rem; font-weight: 600; color: #444; white-space: nowrap; }
+
+        /* Support Row */
+        .support-row { display: flex; gap: 15px; padding: 0 15px 20px; }
+        .support-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; text-decoration: none; color: #333; font-weight: 600; font-size: 0.9rem; }
+        .support-btn i { color: #0088cc; font-size: 1.4rem; }
+
+        /* Product Tabs */
+        .tab-container { padding: 0 15px; display: flex; gap: 10px; margin-bottom: 15px; background: white; padding-top: 15px; position: sticky; top: 0; z-index: 50; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #f1f2f6; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.9rem; color: #7f8fa6; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.2); transform: translateY(-1px); }
+
+        /* Product Card */
+        .product-card { 
+            background: white; 
+            margin: 0 15px 25px; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            box-shadow: var(--card-shadow); 
+            border: 1px solid rgba(0,0,0,0.03); 
+            transition: 0.3s;
+            position: relative;
+        }
+        .prod-img-box { height: 160px; width: 100%; position: relative; overflow: hidden; }
+        .prod-img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .product-card:hover .prod-img { transform: scale(1.05); }
+        .prod-tag { position: absolute; top: 10px; right: 10px; background: var(--accent); color: black; padding: 5px 10px; font-size: 0.7rem; font-weight: bold; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        
+        .prod-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 50px 15px 12px; color: white; }
+        .prod-name { font-size: 1.25rem; font-weight: 800; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; }
+        .prod-desc { font-size: 0.8rem; opacity: 0.9; color: var(--accent); margin-top: 2px; }
+
+        .prod-body { padding: 15px 20px; }
+        .prod-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .prod-stat { background: #f9f9f9; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #eee; }
+        .prod-stat-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
+        .prod-stat-val { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
+        .prod-stat-val.gold { color: #d35400; }
+        
+        .prod-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; color: #555; border-bottom: 1px dashed #eee; padding-bottom: 8px; }
+        .prod-row span:last-child { font-weight: bold; color: var(--primary); }
+        
+        .prod-note { font-size: 0.8rem; color: #d63031; margin: 12px 0; font-weight: 600; background: #fff0f0; padding: 8px; border-radius: 6px; text-align: center; border: 1px dashed #d63031; }
+        
+        .buy-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1a1a1a, #000); color: var(--accent); border: none; border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .buy-btn:hover { background: #333; }
+
+        /* Profile & Menu */
+        .menu-list { background: white; margin: 15px; border-radius: 15px; overflow: hidden; box-shadow: var(--card-shadow); }
+        .menu-item { padding: 20px; border-bottom: 1px solid #f4f4f4; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+        .menu-item:active { background: #f9f9f9; }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item i { color: var(--primary); width: 35px; font-size: 1.2rem; }
+        
+        /* Records */
+        .record-card { background: white; padding: 18px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .rec-left h4 { margin: 0 0 5px; font-size: 1rem; color: #333; }
+        .rec-left p { margin: 0; font-size: 0.8rem; color: #888; }
+        .rec-right { text-align: right; }
+        .status-pending { color: #f39c12; background: #fff3cd; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .status-approved { color: #27ae60; background: #d4edda; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .status-rejected { color: #c0392b; background: #f8d7da; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+
+        /* Loader */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); max-width: 480px; margin: 0 auto; z-index: 999; border-top-left-radius: 20px; border-top-right-radius: 20px; }
+        .nav-link { text-align: center; color: #b2bec3; text-decoration: none; font-size: 0.75rem; flex: 1; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .nav-link i { display: block; font-size: 1.5rem; margin-bottom: 5px; }
+        .nav-link.active { color: var(--primary); transform: translateY(-4px); }
+        .nav-link.active i { color: var(--accent); }
+
+        /* QR Code */
+        #qr-container { padding: 25px; background: white; border-radius: 15px; margin: 20px 0; text-align: center; border: 2px dashed var(--accent); }
+        #qr-img { width: 220px; height: 220px; margin: 0 auto; background-color: #f0f0f0; }
+
+        /* Admin Specific */
+        .admin-user-card { background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; }
+        .admin-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .admin-sub-card { background:#f9f9f9; padding:10px; margin-top:10px; border-radius:5px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Loader -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="margin-top:20px; font-weight:800; letter-spacing:2px; color:black;">ADANI <span style="color:#d4af37">WEALTH</span></p>
+    </div>
+
+    <div id="app">
+        
+        <!-- Header -->
+        <header id="main-header" class="hidden">
+            <div class="flex-between">
+                <div>
+                    <div class="welcome-text">Welcome Member,</div>
+                    <div id="header-username" class="username-text">User</div>
+                </div>
+                <div style="text-align:right;">
+                    <i class="fas fa-crown text-gold" style="font-size:1.5rem;"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- LOGIN PAGE -->
+        <div id="page-login" class="auth-container fade-in hidden">
+            <!-- Modified Logo: Click 10 times to access admin -->
+            <div class="auth-logo" onclick="handleSecretLogin()"><i class="fas fa-shield-alt"></i></div>
+            <div class="auth-logo-text">ADANI <span class="text-gold">STRATEGIC</span></div>
+            <h2 class="text-center">Member Login</h2>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="number" id="login-phone" class="form-control" placeholder="Enter mobile number">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-pass" class="form-control" placeholder="Enter password">
+            </div>
+            <button class="btn btn-primary" onclick="handleLogin()">SECURE LOGIN</button>
+            <div class="auth-toggle">
+                No account? <span onclick="navTo('register')">Create One</span>
+            </div>
+            <!-- REMOVED Visible Admin Link -->
+        </div>
+
+        <!-- REGISTER PAGE -->
+        <div id="page-register" class="auth-container fade-in hidden">
+            <div class="auth-logo"><i class="fas fa-user-plus"></i></div>
+            <h2 class="text-center">Create Account</h2>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="number" id="reg-phone" class="form-control" placeholder="Mobile Number">
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" class="form-control" placeholder="Your Name">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-pass" class="form-control" placeholder="Create Password">
+            </div>
+            <div class="form-group">
+                <label>Referral Code</label>
+                <input type="text" id="reg-ref" class="form-control" placeholder="Optional Code">
+            </div>
+            <button class="btn btn-primary" onclick="handleRegister()">REGISTER NOW</button>
+            <div class="auth-toggle">
+                Has account? <span onclick="navTo('login')">Login</span>
+            </div>
+        </div>
+
+        <!-- HOME PAGE -->
+        <div id="page-home" class="hidden fade-in">
+            <div class="balance-card">
+                <div class="balance-content">
+                    <div class="balance-label">Total Earnings</div>
+                    <div class="balance-val">₹ <span id="home-earnings">0.00</span></div>
+                    <div class="sub-balance">Wallet: ₹ <span id="home-balance">0.00</span></div>
+                </div>
+            </div>
+
+            <h3 style="padding: 0 20px; font-size:1.1rem; margin-bottom:15px; font-weight:800;">Quick Actions</h3>
+            <div class="quick-actions">
+                <div class="qa-item" onclick="navTo('deposit')">
+                    <div class="qa-icon"><i class="fas fa-wallet"></i></div>
+                    <span class="qa-text">Recharge</span>
+                </div>
+                <div class="qa-item" onclick="navTo('withdraw')">
+                    <div class="qa-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+                    <span class="qa-text">Withdraw</span>
+                </div>
+                <div class="qa-item" onclick="navTo('products')">
+                    <div class="qa-icon"><i class="fas fa-chart-line"></i></div>
+                    <span class="qa-text">Invest</span>
+                </div>
+                <div class="qa-item" onclick="navTo('refer')">
+                    <div class="qa-icon"><i class="fas fa-users"></i></div>
+                    <span class="qa-text">Team</span>
+                </div>
+            </div>
+
+            <div class="support-row">
+                <a href="https://t.me/adaniwealth" target="_blank" class="support-btn">
+                    <i class="fab fa-telegram-plane"></i> Join Channel
+                </a>
+                <a href="https://t.me/adora656" target="_blank" class="support-btn">
+                    <i class="fas fa-headset"></i> Customer Service
+                </a>
+            </div>
+
+            <div style="padding:15px;">
+                <img src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=500" style="width:100%; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1); object-fit:cover; height: 180px;">
+                <p class="text-center" style="font-size:0.8rem; color:#888; margin-top:10px;">Strategic Partner of Indian Infrastructure</p>
+            </div>
+        </div>
+
+        <!-- PRODUCTS PAGE (Main Hub) -->
+        <div id="page-products" class="hidden fade-in">
+            <h2 class="text-center" style="margin: 20px 0; font-weight:800;">Investment Hub</h2>
+            
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="switchTab('premium')" id="tab-premium">Strategic</button>
+                <button class="tab-btn" onclick="switchTab('welfare')" id="tab-welfare">Welfare</button>
+                <button class="tab-btn" onclick="switchTab('my')" id="tab-my">My Plans</button>
+            </div>
+
+            <div id="products-content" style="padding-bottom: 20px;">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+
+        <!-- DEPOSIT PAGE -->
+        <div id="page-deposit" class="hidden fade-in" style="padding: 20px;">
+            <button class="btn" style="width:auto; background:transparent; color:#333; padding-left:0;" onclick="navTo('home')"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2>Add Funds</h2>
+            
+            <div id="dep-step-1">
+                <p style="color:#666; font-size:0.9rem;">Select amount to invest in Portfolios.</p>
+                <div class="form-group">
+                    <label>Amount (Min ₹100)</label>
+                    <input type="number" id="dep-amount" class="form-control" placeholder="e.g. 5000">
+                </div>
+                <button class="btn btn-primary" onclick="depositStep2()">Generate Payment QR</button>
+            </div>
+
+            <div id="dep-step-2" class="hidden text-center">
+                <div id="qr-loading">
+                    <div class="spinner" style="margin: 30px auto;"></div>
+                    <p>Contacting Gateway...</p>
+                </div>
+                <div id="qr-content" class="hidden">
+                    <p style="font-weight:bold; font-size:1.2rem; margin-top:10px;">Scan to Pay: ₹<span id="display-dep-amount"></span></p>
+                    <div id="qr-container">
+                        <div id="qr-img"></div> 
+                    </div>
+                    <p style="color:red; font-size:0.8rem; margin-bottom:10px;">*Do not refresh this page during payment*</p>
+                    <button class="btn btn-primary" onclick="depositStep3()">I Have Paid</button>
+                </div>
+            </div>
+
+            <div id="dep-step-3" class="hidden">
+                <h3 class="text-center">Verification</h3>
+                <div class="form-group">
+                    <label>Input 12-Digit UTR / Ref Number</label>
+                    <input type="text" id="dep-utr" class="form-control" placeholder="e.g. 3456xxxxxx12">
+                </div>
+                <button class="btn btn-success" onclick="submitDeposit()">Submit for Approval</button>
+            </div>
+        </div>
+
+        <!-- REFER PAGE -->
+        <div id="page-refer" class="hidden fade-in" style="padding: 20px;">
+             <div class="balance-card" style="background: linear-gradient(135deg, #192a56, #273c75);">
+                <div class="balance-content">
+                    <h3>Invite & Earn</h3>
+                    <p>Get <b style="color:var(--accent); text-decoration:underline;">20% Commission</b> on your friend's first deposit immediately!</p>
+                </div>
+            </div>
+            
+            <div class="form-group" style="background:white; padding:20px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.05); margin-top:20px;">
+                <label>Your Unique Link</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="referral-link" class="form-control" readonly style="font-size:0.8rem; background:#eee;">
+                    <button class="btn btn-primary" style="width:auto; margin:0;" onclick="copyReferral()">Copy</button>
+                </div>
+                <p style="margin-top:15px; font-size:0.9rem; text-align:center;">Referral Code: <b id="my-ref-code" class="text-gold" style="font-size:1.2rem; color:black;"></b></p>
+            </div>
+
+            <h4 style="margin-top:25px;">Team Stats</h4>
+            <div class="flex-between" style="gap:15px;">
+                <div style="background:white; padding:20px; border-radius:15px; flex:1; text-align:center; box-shadow:0 5px 10px rgba(0,0,0,0.05);">
+                    <div style="font-size:1.8rem; font-weight:bold; color:var(--primary);" id="ref-count">0</div>
+                    <div style="font-size:0.8rem; color:#777;">Members</div>
+                </div>
+                <div style="background:white; padding:20px; border-radius:15px; flex:1; text-align:center; box-shadow:0 5px 10px rgba(0,0,0,0.05);">
+                    <div style="font-size:1.8rem; font-weight:bold; color:var(--success);" id="ref-deposits">0</div>
+                    <div style="font-size:0.8rem; color:#777;">Active Investors</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE PAGE (UPDATED) -->
+        <div id="page-profile" class="hidden fade-in">
+            <div style="background: linear-gradient(to bottom, var(--primary), #333); color:white; padding: 40px 20px; text-align:center; border-bottom-left-radius:30px; border-bottom-right-radius:30px;">
+                <div style="width:90px; height:90px; background:white; color:var(--primary); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; border:3px solid var(--accent);"><i class="fas fa-user-tie"></i></div>
+                <h3 id="profile-name" style="margin-bottom:5px;">User Name</h3>
+                <p style="opacity:0.7; font-family:monospace;">ID: <span id="profile-id"></span></p>
+            </div>
+
+            <div class="menu-list" style="margin-top:-20px;">
+                <!-- NEW REFERRAL BONUS RECORD BUTTON -->
+                <div class="menu-item" onclick="navToRecords('referral_bonus')">
+                    <span><i class="fas fa-gift" style="color:#e67e22"></i> Referral Rewards</span>
+                    <i class="fas fa-chevron-right" style="color:#ccc; font-size:0.8rem;"></i>
+                </div>
+
+                <div class="menu-item" onclick="navToRecords('deposit')">
+                    <span><i class="fas fa-file-invoice-dollar" style="color:#2ecc71"></i> Deposit Records</span>
+                    <i class="fas fa-chevron-right" style="color:#ccc; font-size:0.8rem;"></i>
+                </div>
+                <div class="menu-item" onclick="navToRecords('withdrawal')">
+                    <span><i class="fas fa-file-invoice" style="color:#e74c3c"></i> Withdrawal Records</span>
+                    <i class="fas fa-chevron-right" style="color:#ccc; font-size:0.8rem;"></i>
+                </div>
+                <div class="menu-item" onclick="navTo('investment-records')"> 
+                    <span><i class="fas fa-briefcase" style="color:#f1c40f"></i> Investment Records</span>
+                    <i class="fas fa-chevron-right" style="color:#ccc; font-size:0.8rem;"></i>
+                </div>
+                
+                <div class="menu-item" onclick="navTo('bank')">
+                    <span><i class="fas fa-university"></i> Bank Details</span>
+                    <i class="fas fa-chevron-right" style="color:#ccc; font-size:0.8rem;"></i>
+                </div>
+                <div class="menu-item" onclick="navTo('change-pass')">
+                    <span><i class="fas fa-key"></i> Change Password</span>
+                    <i class="fas fa-chevron-right" style="color:#ccc; font-size:0.8rem;"></i>
+                </div>
+                <div class="menu-item" onclick="handleLogout()" style="color:var(--danger);">
+                    <span><i class="fas fa-sign-out-alt" style="color:var(--danger);"></i> Secure Logout</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- WITHDRAW PAGE -->
+        <div id="page-withdraw" class="hidden fade-in" style="padding: 20px;">
+            <button class="btn" style="width:auto; padding-left:0; background:transparent; color:#333;" onclick="navTo('profile')"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2>Withdraw</h2>
+            <div class="balance-card">
+                <div class="balance-content">
+                    <div class="balance-label">Available Balance</div>
+                    <div class="balance-val">₹ <span id="withdraw-balance">0.00</span></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Withdraw Amount (Min ₹150)</label>
+                <input type="number" id="with-amount" class="form-control" placeholder="Enter amount">
+            </div>
+            <!-- WITHDRAW TAX NOTICE -->
+            <div style="background:#fff8e1; padding:15px; border-radius:10px; font-size:0.95rem; color:#e67e22; margin-bottom:20px; border: 1px solid #ffe0b2;">
+                <i class="fas fa-exclamation-triangle"></i> <b>Notice:</b> withdrawal tax  <b>10%</b> is applicable on all withdrawals.
+            </div>
+            <button class="btn btn-primary" onclick="submitWithdraw()">Request Withdrawal</button>
+        </div>
+
+        <!-- RECORDS PAGE (Reused for Dep/With/Bonus) -->
+        <div id="page-records" class="hidden fade-in" style="padding: 15px;">
+             <button class="btn" style="width:auto; padding-left:0; background:transparent; color:#333;" onclick="navTo('profile')"><i class="fas fa-arrow-left"></i> Back</button>
+             <h2 id="records-title">Transactions</h2>
+             <div id="records-list"></div>
+        </div>
+
+        <!-- BANK, CHANGE PASS, ADMIN -->
+        <div id="page-bank" class="hidden fade-in" style="padding: 20px;">
+            <button class="btn" style="width:auto; padding-left:0; background:transparent; color:#333;" onclick="navTo('profile')"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2>Bank Account</h2>
+            <div id="bank-form">
+                <div class="form-group"><label>Bank Name</label><input type="text" id="bank-name" class="form-control"></div>
+                <div class="form-group"><label>Account Holder Name</label><input type="text" id="bank-holder" class="form-control"></div>
+                <div class="form-group"><label>Account Number</label><input type="number" id="bank-acc" class="form-control"></div>
+                <div class="form-group"><label>IFSC Code</label><input type="text" id="bank-ifsc" class="form-control"></div>
+                <button class="btn btn-success" onclick="bindBank()">Save Bank Details</button>
+            </div>
+            <div id="bank-view" class="hidden record-card">
+                <div>
+                    <p><b>Bank:</b> <span id="v-bank-name"></span></p>
+                    <p><b>Holder:</b> <span id="v-bank-holder"></span></p>
+                    <p><b>Acc No:</b> <span id="v-bank-acc"></span></p>
+                    <p><b>IFSC:</b> <span id="v-bank-ifsc"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-change-pass" class="hidden fade-in" style="padding: 20px;">
+             <button class="btn" style="width:auto; padding-left:0; background:transparent; color:#333;" onclick="navTo('profile')"><i class="fas fa-arrow-left"></i> Back</button>
+             <h2>Security</h2>
+             <div class="form-group"><label>Old Password</label><input type="password" id="cp-old" class="form-control"></div>
+             <div class="form-group"><label>New Password</label><input type="password" id="cp-new" class="form-control"></div>
+             <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+        </div>
+
+        <!-- ADMIN LOGIN PAGE (Hidden until 10 clicks) -->
+        <div id="page-admin-login" class="auth-container fade-in hidden">
+            <h2 class="text-center">Admin Access</h2>
+            <div class="form-group">
+                <label>Security Key</label>
+                <input type="password" id="admin-pass-input" class="form-control" placeholder="Enter Access Key">
+            </div>
+            <button class="btn btn-danger" onclick="adminLogin()">Authenticate</button>
+            <button class="btn" onclick="navTo('login')" style="background:transparent; color:#555;">Cancel</button>
+        </div>
+
+        <!-- ADMIN DASHBOARD -->
+        <div id="page-admin-panel" class="hidden fade-in" style="padding:15px; padding-bottom:100px;">
+            <div class="flex-between">
+                <h2 style="margin:0;">Master Control</h2> 
+                <button class="btn btn-danger" style="width:auto; margin:0;" onclick="navTo('login')">Exit</button>
+            </div>
+            
+            <hr>
+            
+            <!-- User Control Section -->
+            <h4>Manage User</h4>
+            <div class="form-group">
+                <input id="admin-search" class="form-control" placeholder="Enter User Phone Number">
+                <button class="btn btn-primary" onclick="adminSearch()">Search & Edit</button>
+            </div>
+            <div id="admin-user-result"></div>
+
+            <hr>
+            
+            <!-- Financial Control Section -->
+            <h4>Financial Requests</h4>
+            <div style="display:flex; gap:10px; margin:15px 0;">
+                <button class="btn btn-secondary" onclick="loadAdminWithdrawals()">Withdrawals</button>
+                <button class="btn btn-secondary" onclick="loadAdminDeposits()">Deposits</button>
+            </div>
+            <div id="admin-content"></div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div id="bottom-nav" class="bottom-nav hidden">
+            <div class="nav-link active" onclick="navTo('home')" id="nav-home"><i class="fas fa-home"></i>Home</div>
+            <div class="nav-link" onclick="navTo('products')" id="nav-products"><i class="fas fa-cubes"></i>Invest</div>
+            <div class="nav-link" onclick="navTo('refer')" id="nav-refer"><i class="fas fa-users"></i>Refer</div>
+            <div class="nav-link" onclick="navTo('profile')" id="nav-profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyBRXsm0iqe-gsd2CLiBZhzcTbmdnAOiPzE",
+          authDomain: "adani-welcome.firebaseapp.com",
+          projectId: "adani-welcome",
+          storageBucket: "adani-welcome.firebasestorage.app",
+          messagingSenderId: "619352092626",
+          appId: "1:619352092626:web:5c25a6cdf088ad699ca20b"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        // Constants
+        const MIN_DEPOSIT = 100;
+        const MIN_WITHDRAW = 150;
+        const ADMIN_PASS = "Abhishek74082";
+        const UPI_ID = "storttvofficial@okhdfcbank"; 
+
+        const PRODUCTS = [
+            // --- Standard Plans ---
+            { id: 'p1', name: 'Axis Life', price: 470, daily: 105, days: 48, type: 'premium', img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=500', desc: 'Finance & Growth' },
+            { id: 'p2', name: 'Adani Life', price: 999, daily: 305, days: 48, type: 'premium', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500', desc: 'Strategic Energy' },
+            { id: 'p3', name: 'Ambani Life', price: 4999, daily: 1199, days: 48, type: 'premium', img: 'https://images.unsplash.com/photo-1516937941344-00b4e0337589?w=500', desc: 'Oil & Telecom' },
+            { id: 'p4', name: 'Bank Life', price: 9999, daily: 2369, days: 48, type: 'premium', img: 'https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?w=500', desc: 'Institutional Banking' },
+            { id: 'p5', name: 'Seva Kendra', price: 678, daily: 290, days: 48, type: 'premium', img: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=500', desc: 'Community Service' },
+            { id: 'p6', name: 'Samsung Fund', price: 1899, daily: 560, days: 48, type: 'premium', img: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=500', desc: 'Global Tech' },
+
+            // --- Welfare Plans ---
+            { id: 'w1', name: 'Welfare Alpha', price: 250, daily: 350, days: 1, type: 'welfare', reqDep: 497, img: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=500', desc: 'VIP Quick Returns' },
+            { id: 'w2', name: 'Welfare Beta', price: 799, daily: 1150, days: 1, type: 'welfare', reqDep: 1400, img: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=500', desc: 'VIP Bonus Plan' },
+            { id: 'w3', name: 'Welfare Gamma', price: 4090, daily: 6000, days: 1, type: 'welfare', reqDep: 7000, img: 'https://images.unsplash.com/photo-1589758438368-0ad531db3366?w=500', desc: 'High Yield Event' },
+            { id: 'w4', name: 'Welfare Delta', price: 7999, daily: 12000, days: 1, type: 'welfare', reqDep: 14000, img: 'https://images.unsplash.com/photo-1569388330292-79cc1ec67270?w=500', desc: 'Exclusive VIP' },
+            { id: 'w5', name: 'Welfare Epsilon', price: 880, daily: 1200, days: 1, type: 'welfare', reqDep: 1400, img: 'https://images.unsplash.com/photo-1605792657660-596af9009e82?w=500', desc: 'Flash Deal' },
+            { id: 'w6', name: 'Welfare Zeta', price: 1700, daily: 2400, days: 1, type: 'welfare', reqDep: 2700, img: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500', desc: 'Special Bonus' },
+            { id: 'w7', name: 'Welfare Theta', price: 480, daily: 700, days: 1, type: 'welfare', reqDep: 900, img: 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=500', desc: 'Starter VIP' }
+        ];
+
+        let currentUser = null;
+        let userData = null;
+        let logoClickCount = 0; // for secret admin login
+
+        // --- UTILS ---
+        const getEl = (id) => document.getElementById(id);
+        const showLoader = (show) => getEl('loader').style.display = show ? 'flex' : 'none';
+
+        // --- SECRET LOGIN HANDLER ---
+        function handleSecretLogin() {
+            logoClickCount++;
+            if(logoClickCount === 10) {
+                logoClickCount = 0;
+                navTo('admin-login');
+            }
+        }
+
+        // --- FIXED: PROCESS EARNINGS ---
+        async function processInvestments() {
+            if(!currentUser) return;
+            const snap = await db.collection('investments').where('userId', '==', currentUser).where('status', '==', 'active').get();
+            if(snap.empty) return;
+
+            const batch = db.batch();
+            let totalToAddToBalance = 0;
+            let totalToAddToEarnings = 0;
+            let hasUpdates = false;
+
+            snap.forEach(doc => {
+                const data = doc.data();
+                const now = new Date();
+                const pDate = data.purchaseDate.toDate();
+                const totalDays = parseInt(data.days);
+                const dailyRate = parseFloat(data.daily);
+                const price = parseFloat(data.price);
+                
+                // Calculate days passed
+                const oneDay = 1000 * 60 * 60 * 24;
+                const diffTime = Math.abs(now - pDate);
+                const daysPassed = Math.floor(diffTime / oneDay);
+                
+                // If investment period is completed (e.g., 48 days)
+                if(daysPassed >= totalDays && data.principalReturned === false) {
+                    const totalProfit = dailyRate * totalDays;
+                    const totalReturn = price + totalProfit; // Principal + Profit
+                    
+                    totalToAddToBalance += totalReturn; // Add to wallet balance
+                    totalToAddToEarnings += totalProfit; // Add to earnings
+                    
+                    // Mark investment as completed
+                    const ref = db.collection('investments').doc(doc.id);
+                    batch.update(ref, { 
+                        status: 'completed',
+                        accumulated: totalProfit,
+                        principalReturned: true,
+                        completionDate: new Date()
+                    });
+                    hasUpdates = true;
+                }
+            });
+
+            if(hasUpdates) {
+                const userRef = db.collection('users').doc(currentUser);
+                batch.update(userRef, {
+                    balance: firebase.firestore.FieldValue.increment(totalToAddToBalance),
+                    earnings: firebase.firestore.FieldValue.increment(totalToAddToEarnings) 
+                });
+                await batch.commit();
+                console.log(`Added ₹${totalToAddToBalance} to wallet (Principal+Profit)`);
+            }
+        }
+
+        async function navTo(page) {
+            if(page === 'investment-records') {
+                navTo('products');
+                switchTab('my');
+                return;
+            }
+
+            document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+            getEl('main-header').classList.add('hidden');
+            getEl('bottom-nav').classList.add('hidden');
+            window.scrollTo(0,0);
+
+            if(page === 'login' || page === 'register' || page === 'admin-login') {
+                getEl('page-' + page).classList.remove('hidden');
+            } else {
+                if(!userData && page !== 'admin-panel') return navTo('login'); 
+                
+                getEl('page-' + page).classList.remove('hidden');
+                
+                if (page !== 'admin-panel') {
+                    getEl('main-header').classList.remove('hidden');
+                    getEl('bottom-nav').classList.remove('hidden');
+                    getEl('header-username').innerText = userData.name;
+
+                    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                    const activeNav = getEl('nav-' + page);
+                    if(activeNav) activeNav.classList.add('active');
+                }
+
+                if(page === 'home') {
+                    await processInvestments(); // Process matured investments
+                    await refreshUser(); // Refresh user data
+                    renderHome(); // Update display
+                }
+                
+                if(page === 'products') switchTab('premium'); 
+                if(page === 'refer') renderRefer();
+                if(page === 'profile') renderProfile();
+                if(page === 'bank') renderBank();
+            }
+        }
+
+        // --- Special Nav for Records ---
+        function navToRecords(type) {
+            navTo('records');
+            renderRecords(type);
+        }
+
+        // --- AUTH ---
+        async function handleRegister() {
+            const phone = getEl('reg-phone').value;
+            const name = getEl('reg-name').value;
+            const pass = getEl('reg-pass').value;
+            const ref = getEl('reg-ref').value;
+
+            if(!phone || !name || !pass) return alert("All fields required");
+            showLoader(true);
+            try {
+                const snap = await db.collection('users').where('phone', '==', phone).get();
+                if(!snap.empty) { showLoader(false); return alert("Phone already registered"); }
+
+                const uid = db.collection('users').doc().id;
+                await db.collection('users').doc(uid).set({
+                    uid, phone, name, password: pass, balance: 0, earnings: 0, totalDeposit: 0, referrer: ref || null, joinedAt: new Date(), isBanned: false
+                });
+                alert("Account Created Successfully"); navTo('login');
+            } catch(e) { alert(e.message); }
+            showLoader(false);
+        }
+
+        async function handleLogin() {
+            const phone = getEl('login-phone').value;
+            const pass = getEl('login-pass').value;
+            showLoader(true);
+            try {
+                const snap = await db.collection('users').where('phone', '==', phone).limit(1).get();
+                if(snap.empty) { showLoader(false); return alert("Account not found"); }
+                const u = snap.docs[0].data();
+                if(u.password !== pass) { showLoader(false); return alert("Incorrect Password"); }
+                if(u.isBanned) { showLoader(false); return alert("Account Banned by Admin"); }
+                
+                currentUser = u.uid;
+                userData = u;
+                await processInvestments(); // Check for matured investments on login
+                await refreshUser();
+                navTo('home');
+            } catch(e) { alert("Error"); }
+            showLoader(false);
+        }
+
+        function handleLogout() { currentUser = null; userData = null; navTo('login'); }
+        async function refreshUser() { if(!currentUser) return; const d = await db.collection('users').doc(currentUser).get(); userData = d.data(); }
+
+        // --- HOME ---
+        function renderHome() {
+            getEl('home-earnings').innerText = userData.earnings.toFixed(2);
+            getEl('home-balance').innerText = userData.balance.toFixed(2);
+        }
+
+        // --- PRODUCTS ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            getEl('tab-' + tabName).classList.add('active');
+            const content = getEl('products-content');
+            content.innerHTML = "";
+            if(tabName === 'my') { renderMyProducts(content); } else { renderProductList(content, tabName); }
+        }
+
+        function renderProductList(container, type) {
+            const filtered = PRODUCTS.filter(p => p.type === type);
+            filtered.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'product-card fade-in';
+                const isPremium = type === 'premium';
+                const totalRev = p.daily * p.days;
+                const cycleText = p.days + " Days";
+                let noteText = isPremium ? "Returns Principal + Profit AFTER " + p.days + " days" : `Requires Total Deposit ≥ ₹${p.reqDep} | One Time Buy`;
+                let tagText = isPremium ? "STRATEGIC" : "WELFARE VIP";
+
+                div.innerHTML = `
+                    <div class="prod-img-box">
+                        <img src="${p.img}" class="prod-img" alt="${p.name}">
+                        <div class="prod-tag">${tagText}</div>
+                        <div class="prod-overlay">
+                            <div class="prod-name">${p.name}</div>
+                            <div class="prod-desc">${p.desc}</div>
+                        </div>
+                    </div>
+                    <div class="prod-body">
+                        <div class="prod-grid">
+                            <div class="prod-stat">
+                                <div class="prod-stat-label">Daily Income</div>
+                                <div class="prod-stat-val">₹${p.daily}</div>
+                            </div>
+                            <div class="prod-stat">
+                                <div class="prod-stat-label">Total Revenue</div>
+                                <div class="prod-stat-val gold">₹${totalRev}</div>
+                            </div>
+                        </div>
+                        <div class="prod-row"><span>Investment</span> <span>₹${p.price}</span></div>
+                        <div class="prod-row"><span>Cycle Duration</span> <span>${cycleText}</span></div>
+                        <div class="prod-note">${noteText}</div>
+                        <button class="buy-btn" onclick="buyProduct('${p.id}')">Invest ₹${p.price}</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function renderMyProducts(container) {
+            container.innerHTML = '<div class="text-center" style="margin-top:20px"><div class="spinner"></div></div>';
+            await processInvestments(); // Check for matured investments
+            await refreshUser(); // Refresh user data
+
+            const snap = await db.collection('investments').where('userId', '==', currentUser).get();
+            container.innerHTML = "";
+            if(snap.empty) {
+                container.innerHTML = "<div class='text-center' style='padding:40px; color:#999;'><i class='fas fa-folder-open' style='font-size:3rem; margin-bottom:10px;'></i><br>No active investments found.</div>";
+                return;
+            }
+
+            snap.forEach(doc => {
+                const d = doc.data();
+                const original = PRODUCTS.find(p => p.id === d.prodId);
+                const img = original ? original.img : 'https://images.unsplash.com/photo-1611974765270-ca12586343bb?w=500';
+                
+                const purchaseDate = d.purchaseDate.toDate();
+                const now = new Date();
+                const daysPassed = Math.floor((now - purchaseDate)/(1000*60*60*24));
+                const isFinished = d.status === 'completed';
+                const displayDays = daysPassed > d.days ? d.days : daysPassed;
+                const potentialRevenue = d.daily * d.days;
+                const totalReturn = d.price + potentialRevenue;
+                const lockStatus = isFinished 
+                    ? `<span style='color:green; font-weight:bold;'>COMPLETED - Funds Added to Wallet</span>` 
+                    : `<span style='color:red; font-weight:bold;'><i class="fas fa-lock"></i> LOCKED (${d.days - displayDays} days left)</span>`;
+
+                const div = document.createElement('div');
+                div.className = 'product-card';
+                div.innerHTML = `
+                    <div class="prod-img-box" style="height:120px;">
+                        <img src="${img}" class="prod-img">
+                         <div class="prod-overlay" style="padding:15px;">
+                            <div class="prod-name" style="font-size:1.1rem;">${d.prodName || 'Plan'}</div>
+                        </div>
+                    </div>
+                    <div class="prod-body" style="padding:15px;">
+                        <div class="flex-between" style="margin-bottom:10px;">
+                            <span style="font-size:0.9rem; font-weight:bold;">Invested: ₹${d.price}</span>
+                            <span class="${isFinished ? 'status-approved' : 'status-pending'}">${isFinished ? 'COMPLETED' : 'RUNNING'}</span>
+                        </div>
+                        <div class="flex-between" style="font-size:0.8rem; color:#666;">
+                            <span>Progress</span>
+                            <span>Day: ${displayDays} / ${d.days}</span>
+                        </div>
+                        <div style="width:100%; background:#eee; height:6px; border-radius:3px; margin:5px 0 10px;">
+                            <div style="width:${(displayDays/d.days)*100}%; background:var(--accent); height:100%; border-radius:3px;"></div>
+                        </div>
+                        <div class="flex-between" style="font-size:0.9rem; margin-top:5px; border-top:1px dashed #ddd; padding-top:8px;">
+                            <span>Maturity Amount:</span>
+                            <span style="font-weight:bold;">₹${totalReturn}</span>
+                        </div>
+                         <div style="font-size:0.8rem; margin-top:5px; text-align:right;">
+                            Status: ${lockStatus}
+                        </div>
+                        <div style="font-size:0.75rem; color:#aaa; margin-top:8px; text-align:right;">
+                            Purchased: ${purchaseDate.toLocaleDateString()}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function buyProduct(pid) {
+            const p = PRODUCTS.find(x => x.id === pid);
+            if(userData.balance < p.price) return alert("Insufficient Balance. Please Recharge.");
+            
+            if(p.type === 'welfare') {
+                if(userData.totalDeposit < p.reqDep) return alert(`Eligibility Failed: Total deposit must be ₹${p.reqDep}+ to buy this VIP product.`);
+                const check = await db.collection('investments').where('userId','==',currentUser).where('prodId','==',pid).get();
+                if(!check.empty) return alert("Limit Reached: This is a One-Time Buy product.");
+            }
+
+            if(!confirm("IMPORTANT: This plan has a STRICT MATURITY policy. Your investment will be locked for " + p.days + " days. After " + p.days + " days, principal + profit will be added to your wallet. Agree?")) return;
+
+            showLoader(true);
+            try {
+                await db.collection('users').doc(currentUser).update({ balance: firebase.firestore.FieldValue.increment(-p.price) });
+                
+                await db.collection('investments').add({
+                    userId: currentUser, 
+                    prodId: pid, 
+                    prodName: p.name, 
+                    price: p.price, 
+                    daily: p.daily, 
+                    days: p.days, 
+                    purchaseDate: new Date(), 
+                    accumulated: 0, 
+                    status: 'active', 
+                    principalReturned: false
+                });
+
+                await refreshUser();
+                alert("Investment Successful! Your money will be locked for " + p.days + " days.");
+                switchTab('my');
+            } catch(e) { alert("Error processing transaction"); }
+            showLoader(false);
+        }
+
+        // --- DEPOSIT ---
+        let tempDepAmount = 0;
+        function depositStep2() {
+            const amt = parseFloat(getEl('dep-amount').value);
+            if(!amt || amt < MIN_DEPOSIT) return alert(`Minimum Recharge is ₹${MIN_DEPOSIT}`);
+            tempDepAmount = amt;
+            getEl('dep-step-1').classList.add('hidden');
+            getEl('dep-step-2').classList.remove('hidden');
+            const qrData = `upi://pay?pa=${UPI_ID}&pn=AdaniStrategic&am=${amt}&cu=INR`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
+            setTimeout(() => {
+                getEl('qr-loading').classList.add('hidden');
+                getEl('qr-content').classList.remove('hidden');
+                getEl('display-dep-amount').innerText = amt;
+                getEl('qr-img').style.background = `url('${qrUrl}') no-repeat center`;
+                getEl('qr-img').style.backgroundSize = 'contain';
+            }, 1000);
+        }
+        function depositStep3() { getEl('dep-step-2').classList.add('hidden'); getEl('dep-step-3').classList.remove('hidden'); }
+
+        async function submitDeposit() {
+            const utr = getEl('dep-utr').value;
+            if(utr.length < 10) return alert("Invalid UTR Number.");
+            showLoader(true);
+            await db.collection('transactions').add({ userId: currentUser, type: 'deposit', amount: tempDepAmount, utr: utr, status: 'pending', date: new Date() });
+            alert("Submitted Successfully."); navToRecords('deposit'); showLoader(false);
+        }
+
+        // --- WITHDRAW ---
+        async function submitWithdraw() {
+            if(!userData.bankDetails) return alert("Add Bank Details first.");
+            const amt = parseFloat(getEl('with-amount').value);
+            if(amt < MIN_WITHDRAW) return alert(`Min Withdraw is ₹${MIN_WITHDRAW}`);
+            if(amt > userData.balance) return alert("Insufficient Wallet Balance");
+            showLoader(true);
+            await db.collection('users').doc(currentUser).update({ balance: firebase.firestore.FieldValue.increment(-amt) });
+            await db.collection('transactions').add({ userId: currentUser, type: 'withdrawal', amount: amt, bank: userData.bankDetails, status: 'pending', date: new Date() });
+            await refreshUser(); alert("Withdrawal Request Sent."); navToRecords('withdrawal'); showLoader(false);
+        }
+
+        // --- RECORDS (Updated for Referral Bonus) ---
+        function renderRecords(filterType) {
+            let title = "Transactions";
+            if(filterType === 'deposit') title = "Deposit History";
+            else if(filterType === 'withdrawal') title = "Withdrawal History";
+            else if(filterType === 'referral_bonus') title = "Referral Bonus History";
+            
+            getEl('records-title').innerText = title;
+            const list = getEl('records-list');
+            list.innerHTML = '<div class="text-center"><div class="spinner"></div></div>';
+            
+            db.collection('transactions')
+              .where('userId', '==', currentUser)
+              .get()
+              .then(snap => {
+                  list.innerHTML = "";
+                  let docs = [];
+                  snap.forEach(doc => docs.push(doc.data()));
+                  const filtered = docs.filter(d => d.type === filterType).sort((a, b) => b.date.toDate() - a.date.toDate());
+
+                  if(filtered.length === 0) { list.innerHTML = "<p class='text-center' style='margin-top:20px; color:#888;'>No records found.</p>"; return; }
+
+                  filtered.forEach(d => {
+                      let statusBadge = "";
+                      let statusText = "";
+                      let amountColor = "";
+                      let amountSign = "";
+
+                      if(d.type === 'referral_bonus') {
+                          statusText = "RECEIVED";
+                          statusBadge = "status-approved";
+                          amountColor = "var(--accent)";
+                          amountSign = "+";
+                      } else {
+                          // Existing logic
+                          if(d.status === 'approved') { statusText = "SUCCESS"; statusBadge = "status-approved"; }
+                          else if(d.status === 'rejected') { statusText = "FAILED"; statusBadge = "status-rejected"; }
+                          else { statusText = "PENDING"; statusBadge = "status-pending"; }
+                          amountColor = d.type === 'deposit' ? 'var(--success)' : 'var(--text)';
+                          amountSign = d.type === 'deposit' ? '+' : '-';
+                      }
+
+                      const div = document.createElement('div');
+                      div.className = 'record-card fade-in';
+                      div.innerHTML = `
+                        <div class="rec-left">
+                            <h4 style="text-transform:uppercase; font-weight:800;">${d.type.replace('_',' ')}</h4>
+                            <p>${d.date.toDate().toLocaleDateString()} ${d.date.toDate().toLocaleTimeString()}</p>
+                            ${d.utr ? `<p style="font-family:monospace; color:#555;">UTR: ${d.utr}</p>` : ''}
+                            ${d.fromUser ? `<p style="font-size:0.7rem;">From User ID: ...${d.fromUser.slice(-5)}</p>` : ''}
+                        </div>
+                        <div class="rec-right">
+                            <div style="font-weight:bold; font-size:1.1rem; color:${amountColor}">
+                                ${amountSign}₹${d.amount.toFixed(2)}
+                            </div>
+                            <div class="${statusBadge}" style="margin-top:5px; display:inline-block;">${statusText}</div>
+                        </div>
+                      `;
+                      list.appendChild(div);
+                  });
+              });
+        }
+
+        // --- REFER ---
+        async function renderRefer() {
+            getEl('my-ref-code').innerText = currentUser;
+            getEl('referral-link').value = window.location.origin + window.location.pathname + "?ref=" + currentUser;
+            const snap = await db.collection('users').where('referrer', '==', currentUser).get();
+            getEl('ref-count').innerText = snap.size;
+            let depositors = 0;
+            snap.forEach(d => { if(d.data().totalDeposit > 0) depositors++; });
+            getEl('ref-deposits').innerText = depositors;
+        }
+        function copyReferral() { getEl('referral-link').select(); document.execCommand('copy'); alert("Referral Link Copied"); }
+
+        // --- PROFILE & BANK ---
+        function renderProfile() {
+            getEl('profile-name').innerText = userData.name;
+            getEl('profile-id').innerText = userData.uid.substring(0,8)+"...";
+            getEl('withdraw-balance').innerText = userData.balance.toFixed(2);
+        }
+        function renderBank() {
+            if(userData.bankDetails) {
+                getEl('bank-form').classList.add('hidden'); getEl('bank-view').classList.remove('hidden');
+                const b = userData.bankDetails;
+                getEl('v-bank-name').innerText = b.bankName; getEl('v-bank-holder').innerText = b.holder;
+                getEl('v-bank-acc').innerText = b.accNo; getEl('v-bank-ifsc').innerText = b.ifsc;
+            } else { getEl('bank-form').classList.remove('hidden'); getEl('bank-view').classList.add('hidden'); }
+        }
+        async function bindBank() {
+            const b = { bankName: getEl('bank-name').value, holder: getEl('bank-holder').value, accNo: getEl('bank-acc').value, ifsc: getEl('bank-ifsc').value };
+            if(!b.accNo) return alert("Fill all details");
+            if(confirm("Are you sure?")) { await db.collection('users').doc(currentUser).update({ bankDetails: b }); await refreshUser(); renderBank(); }
+        }
+        async function changePassword() {
+            const o = getEl('cp-old').value, n = getEl('cp-new').value;
+            if(o !== userData.password) return alert("Old Password Incorrect");
+            await db.collection('users').doc(currentUser).update({ password: n }); alert("Password Updated"); navTo('profile');
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        function adminLogin() { 
+            if(getEl('admin-pass-input').value === ADMIN_PASS) { navTo('admin-panel'); } 
+            else { alert("Access Denied"); }
+        }
+
+        async function loadAdminDeposits() { renderAdminList('deposit'); }
+        async function loadAdminWithdrawals() { renderAdminList('withdrawal'); }
+
+        async function renderAdminList(type) {
+             const c = getEl('admin-content'); c.innerHTML = "Loading...";
+             const snap = await db.collection('transactions').where('type','==',type).where('status','==','pending').get();
+             c.innerHTML = `<h3>Pending ${type}s</h3>`;
+             if(snap.empty) c.innerHTML += "<p>No pending requests.</p>";
+             
+             snap.forEach(doc => {
+                 const d = doc.data();
+                 const btn = `<button class="btn btn-success" style="padding:5px; font-size:0.8rem;" onclick="adminAct('${doc.id}','approve','${type}','${d.userId}',${d.amount})">Approve (Success)</button>`;
+                 const rejBtn = `<button class="btn btn-danger" style="padding:5px; font-size:0.8rem;" onclick="adminAct('${doc.id}','reject','${type}','${d.userId}',${d.amount})">Reject (Fail)</button>`;
+                 c.innerHTML += `
+                    <div class="record-card">
+                        <div><small>ID: ${d.userId.substring(0,5)}</small><br><b>₹${d.amount}</b><br><small>${d.utr ? 'UTR:'+d.utr : 'Bank:'+d.bank.accNo}</small></div>
+                        <div style="display:flex; gap:5px; flex-direction:column; width:120px;">${btn}${rejBtn}</div>
+                    </div>`;
+             });
+        }
+
+        async function adminAct(tid, action, type, uid, amt) {
+            showLoader(true);
+            try {
+                if(action === 'approve') {
+                    await db.collection('transactions').doc(tid).update({ status: 'approved' });
+                    
+                    if(type === 'deposit') {
+                        await db.collection('users').doc(uid).update({ balance: firebase.firestore.FieldValue.increment(amt), totalDeposit: firebase.firestore.FieldValue.increment(amt) });
+                        
+                        // Referral Bonus Logic - Added Record Creation
+                        const u = (await db.collection('users').doc(uid).get()).data();
+                        if(u.referrer && u.totalDeposit === amt) { 
+                             const bonusAmt = amt * 0.20;
+                             await db.collection('users').doc(u.referrer).update({ 
+                                 balance: firebase.firestore.FieldValue.increment(bonusAmt), 
+                                 earnings: firebase.firestore.FieldValue.increment(bonusAmt) 
+                             });
+                             // RECORD THE BONUS
+                             await db.collection('transactions').add({
+                                 userId: u.referrer,
+                                 type: 'referral_bonus',
+                                 amount: bonusAmt,
+                                 fromUser: uid,
+                                 date: new Date(),
+                                 status: 'approved'
+                             });
+                        }
+                    } 
+                } else if(action === 'reject') {
+                    await db.collection('transactions').doc(tid).update({ status: 'rejected' });
+                    if(type === 'withdrawal') {
+                        await db.collection('users').doc(uid).update({ balance: firebase.firestore.FieldValue.increment(amt) });
+                    }
+                }
+                alert("Action Completed"); getEl('admin-content').innerHTML="";
+            } catch(e) { console.error(e); alert("Error"); }
+            showLoader(false);
+        }
+
+        async function adminSearch() {
+            const q = getEl('admin-search').value;
+            if(!q) return alert("Enter Phone Number");
+            showLoader(true);
+            
+            const snap = await db.collection('users').where('phone','==',q).get();
+            const res = getEl('admin-user-result');
+            res.innerHTML = "";
+            
+            if(snap.empty) { 
+                res.innerHTML="<p class='text-center' style='color:red'>User Not found</p>"; 
+                showLoader(false); return; 
+            }
+            
+            const u = snap.docs[0].data();
+            const docId = snap.docs[0].id;
+
+            // Fetch User Investments for Deletion
+            let invHTML = "";
+            const invSnap = await db.collection('investments').where('userId', '==', u.uid).where('status','==','active').get();
+            if(invSnap.empty) { invHTML = "<small>No active investments</small>"; }
+            else {
+                invSnap.forEach(inv => {
+                    invHTML += `
+                    <div class="admin-sub-card">
+                        <span>${inv.data().prodName} (₹${inv.data().price})</span>
+                        <button class="btn btn-danger" style="width:auto; padding:5px 10px; font-size:0.7rem; margin:0;" onclick="adminDeleteInvestment('${inv.id}')">DELETE</button>
+                    </div>`;
+                });
+            }
+
+            res.innerHTML = `
+                <div class="admin-user-card">
+                    <div style="border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
+                        <strong>${u.name}</strong> (${u.phone})<br>
+                        <small>ID: ${u.uid}</small><br>
+                        <small>Status: ${u.isBanned ? '<span style="color:red; font-weight:bold;">BANNED</span>' : '<span style="color:green">ACTIVE</span>'}</small>
+                    </div>
+                    <div class="admin-controls">
+                        <button class="btn btn-primary" onclick="adminLoginAsUser('${u.uid}')" style="grid-column: span 2; background: #6c5ce7; border:none;">Login as User</button>
+                        <input type="number" id="adm-bal-in" class="form-control" value="${u.balance}" placeholder="Balance">
+                        <button class="btn btn-success" style="margin:0" onclick="adminUpdateBalance('${docId}')">Update Bal</button>
+                        <input type="text" id="adm-pass-in" class="form-control" value="${u.password}" placeholder="Pass">
+                        <button class="btn btn-secondary" style="margin:0" onclick="adminUpdatePass('${docId}')">Set Pass</button>
+                        <button class="btn btn-danger" style="grid-column: span 2; margin-top:5px;" onclick="adminToggleBan('${docId}', ${u.isBanned})">
+                            ${u.isBanned ? 'UNBAN USER' : 'BAN USER'}
+                        </button>
+                    </div>
+                    
+                    <hr style="margin:15px 0; border:0; border-top:1px dashed #ccc;">
+                    <h5 style="margin:0 0 10px;">Admin Buy (Force Add)</h5>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="adm-prod-id" class="form-control" placeholder="Prod ID (e.g. p1)">
+                        <button class="btn btn-primary" style="width:80px; margin:0;" onclick="adminAssignProduct('${u.uid}')">Add</button>
+                    </div>
+
+                    <hr style="margin:15px 0; border:0; border-top:1px dashed #ccc;">
+                    <h5 style="margin:0 0 10px;">Active Investments</h5>
+                    ${invHTML}
+                </div>`;
+            showLoader(false);
+        }
+
+        // --- NEW ADMIN FUNCTIONS: Buy & Delete ---
+
+        async function adminAssignProduct(uid) {
+            const pid = getEl('adm-prod-id').value;
+            const p = PRODUCTS.find(x => x.id === pid);
+            if(!p) return alert("Invalid Product ID (Use p1, p2, w1 etc)");
+            
+            if(!confirm(`Add ${p.name} to this user? This will NOT deduct balance.`)) return;
+            
+            showLoader(true);
+            await db.collection('investments').add({
+                userId: uid, 
+                prodId: pid, 
+                prodName: p.name, 
+                price: p.price, 
+                daily: p.daily, 
+                days: p.days, 
+                purchaseDate: new Date(), 
+                accumulated: 0, 
+                status: 'active', 
+                principalReturned: false
+            });
+            alert("Product Assigned Successfully");
+            adminSearch(); // Refresh UI
+        }
+
+        async function adminDeleteInvestment(docId) {
+            if(!confirm("Are you sure you want to DELETE this investment record? It cannot be undone.")) return;
+            showLoader(true);
+            await db.collection('investments').doc(docId).delete();
+            alert("Investment Record Deleted");
+            adminSearch(); // Refresh UI
+        }
+
+        async function adminLoginAsUser(targetUid) {
+            showLoader(true);
+            try {
+                const d = await db.collection('users').doc(targetUid).get();
+                userData = d.data();
+                currentUser = targetUid;
+                alert("Logged in as " + userData.name);
+                navTo('home');
+            } catch(e) { alert("Error logging in"); }
+            showLoader(false);
+        }
+
+        async function adminUpdateBalance(uid) {
+            const newBal = parseFloat(getEl('adm-bal-in').value);
+            await db.collection('users').doc(uid).update({ balance: newBal });
+            alert("Balance Updated"); adminSearch();
+        }
+
+        async function adminUpdatePass(uid) {
+            const newPass = getEl('adm-pass-in').value;
+            await db.collection('users').doc(uid).update({ password: newPass });
+            alert("Password Changed");
+        }
+
+        async function adminToggleBan(uid, currentStatus) {
+            await db.collection('users').doc(uid).update({ isBanned: !currentStatus });
+            alert("User Status Updated"); adminSearch();
+        }
+
+        // --- INIT ---
+        window.onload = function() {
+            showLoader(false);
+            const p = new URLSearchParams(window.location.search).get('ref');
+            if(p) { navTo('register'); getEl('reg-ref').value = p; }
+            else { navTo('login'); }
+        };
+    </script>
+</body>
+</html>
